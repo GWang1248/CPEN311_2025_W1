@@ -13,6 +13,7 @@ module statemachine(input logic slow_clock, input logic resetb,
     parameter D2 = 4'b0011;
     parameter P2 = 4'b0100;
     parameter DIVERGE = 4'b0101;
+    parameter OVER = 4'b1111;
 
 //Statemachine Logic
     always_ff @(posedge slow_clock) begin
@@ -53,7 +54,20 @@ module statemachine(input logic slow_clock, input logic resetb,
                     load_pcard2 <= 1;
                 end
                 DIVERGE: begin
+                    if (pscore >=8 || dscore >= 8)
+                        state <= OVER;
 
+                end
+                OVER: begin
+                    if (pscore > dscore)
+                        player_win_light <= 1;
+                    else if (dscore > pscore)
+                        dealer_win_light <= 1;
+                    else if (pscore == dscore) begin
+                        dealer_win_light <= 1;
+                        player_win_light <= 1;
+                    end
+                    state <= IDLE;
                 end
             endcase
         end
