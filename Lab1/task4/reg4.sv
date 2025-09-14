@@ -6,10 +6,10 @@ module reg4(input logic [3:0] new_card,
 
 	always_ff @(posedge slow_clock) begin
 		if (resetb == 0)
-			final_card <= 4'b0;
+			final_card = 4'b0;
 		else begin
 			if (load_card == 1)
-				final_card <= new_card;
+				final_card = new_card;
 		end
 	end
 
