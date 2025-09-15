@@ -7,53 +7,49 @@ module statemachine(input logic slow_clock, input logic resetb,
 //Define States
     logic [3:0] state;
 
-    parameter IDLE = 2'd0;
-    parameter P1 = 2'd1;
-    parameter D1 = 2'd2;
-    parameter P2 = 2'd3;
-    parameter D2 = 2'd4;
-    parameter DIVERGE = 2'd5;
-    parameter P3 = 2'd6;
-    parameter D3 = 2'd7;
-    parameter OVER = 4'b1111;
+    parameter IDLE = 4'b0000;
+    parameter P1 = 4'b0001;
+    parameter D1 = 4'b0010;
+    parameter P2 = 4'b0011;
+    parameter D2 = 4'b0100;
+    parameter DIVERGE = 4'b0101;
+    parameter P3 = 4'b0110;
+    parameter D3_1 = 4'b0111;
+    parameter D3_2 = 4'b1000;
+    parameter OVER = 4'b1001;
 
 //Statemachine Logic
     always_ff @(posedge slow_clock) begin
-
         if (resetb == 0) begin //Reset
-            load_dcard1 <= 0;
-            load_pcard1 <= 0;
-            load_dcard2 <= 0;
-            load_pcard2 <= 0;
-            load_dcard3 <= 0;
-            load_pcard3 <= 0;
             state <= IDLE;
         end
 
         else begin //Begin Baccarat
-            load_dcard1 <= 0;
-            load_pcard1 <= 0;
-            load_dcard2 <= 0;
-            load_pcard2 <= 0;
-            load_dcard3 <= 0;
-            load_pcard3 <= 0;
             case(state)
-                IDLE: state <= P1;
+                IDLE: begin
+                    load_dcard1 <= 0;
+                    load_pcard1 <= 0;
+                    load_dcard2 <= 0;
+                    load_pcard2 <= 0;
+                    load_dcard3 <= 0;
+                    load_pcard3 <= 0;
+                    state <= P1;
+                end
                 P1: begin
-                    state <= D1;
                     load_pcard1 <= 1;
+                    state <= D1;
                 end
                 D1: begin
-                    state <= P2;
                     load_dcard1 <= 1;
+                    state <= P2;
                 end
                 P2: begin
-                    state <= D2;
                     load_pcard2 <= 1;
+                    state <= D2;
                 end
                 D2: begin
-                    state <= DIVERGE;
                     load_dcard2 <= 1;
+                    state <= DIVERGE;
                 end
                 DIVERGE: begin
                     if (pscore >= 8 || dscore >= 8) //Natural
@@ -64,7 +60,7 @@ module statemachine(input logic slow_clock, input logic resetb,
                 P3: begin //Player gets 3rd card condition
                     if (pscore >= 0 && pscore <= 5) begin
                         load_pcard3 <= 1;
-                        state <= D3_1
+                        state <= D3_1;
                     end
                     else begin
                         load_pcard3 <= 0;
@@ -72,6 +68,7 @@ module statemachine(input logic slow_clock, input logic resetb,
                     end
                 end
                 D3_1: begin // Dealer gets 3rd card condition if player gets 3rd card
+                    load_dcard3 <= 0;
                     case (dscore)
                         7: load_dcard3 <= 0;
                         6: begin

@@ -4,11 +4,12 @@ module scorehand(input logic [3:0] card1,
                 output logic [3:0] total);
 
     logic [3:0] val1, val2, val3;
-    assign val1 = card1;
-    assign val2 = card2;
-    assign val3 = card3;
 
     always_comb begin
+        val1 = card1;
+        val2 = card2;
+        val3 = card3;
+
         if (card1 >= 10)
             val1 = 0;
         if (card2 >= 10)
