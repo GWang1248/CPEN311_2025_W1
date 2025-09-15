@@ -18,105 +18,106 @@ module statemachine(input logic slow_clock, input logic resetb,
     parameter D3_2 = 4'b1000;
     parameter OVER = 4'b1001;
 
-//Statemachine Logic
+//State Transition Logic
     always_ff @(posedge slow_clock) begin
-        if (resetb == 0) begin //Reset
+        if (!resetb)
             state <= IDLE;
-        end
-
-        else begin //Begin Baccarat
-            case(state)
-                IDLE: begin
-                    load_dcard1 <= 0;
-                    load_pcard1 <= 0;
-                    load_dcard2 <= 0;
-                    load_pcard2 <= 0;
-                    load_dcard3 <= 0;
-                    load_pcard3 <= 0;
-                    state <= P1;
-                end
-                P1: begin
-                    load_pcard1 <= 1;
-                    state <= D1;
-                end
-                D1: begin
-                    load_dcard1 <= 1;
-                    state <= P2;
-                end
-                P2: begin
-                    load_pcard2 <= 1;
-                    state <= D2;
-                end
-                D2: begin
-                    load_dcard2 <= 1;
-                    state <= DIVERGE;
-                end
+        else begin
+            case (state)
+                IDLE: state <= P1;
+                P1: state <= D1;
+                D1: state <= P2;
+                P2: state <= D2;
+                D2: state <= DIVERGE;
                 DIVERGE: begin
                     if (pscore >= 8 || dscore >= 8) //Natural
                         state <= OVER;
                     else //Player scores 0 to 7
                         state <= P3;
                 end
-                P3: begin //Player gets 3rd card condition
-                    if (pscore >= 0 && pscore <= 5) begin
-                        load_pcard3 <= 1;
+                P3: begin
+                    if (pscore >= 0 && pscore <= 5)
                         state <= D3_1;
-                    end
-                    else begin
-                        load_pcard3 <= 0;
+                    else
                         state <= D3_2;
-                    end
                 end
-                D3_1: begin // Dealer gets 3rd card condition if player gets 3rd card
-                    load_dcard3 <= 0;
-                    case (dscore)
-                        7: load_dcard3 <= 0;
-                        6: begin
-                            if (pcard3 == 6 || pcard3 == 7)
-                                load_dcard3 <= 1;
-                        end
-                        5: begin
-                            if (pcard3 >= 4 && pcard3 <=7)
-                                load_dcard3 <= 1;
-                        end
-                        4: begin
-                            if (pcard3 >= 2 && pcard3 <=7)
-                                load_dcard3 <= 1;
-                        end
-                        3: begin
-                            if (pcard3 != 8)
-                                load_dcard3 <= 1;
-                        end
-                        default: load_dcard3 <= 1;
-                    endcase
-                    state <= OVER;
-                end
-                D3_2: begin //Dealer gets 3rd card condition if player doesnt get 3rd card
-                    if (dscore >=0 && dscore <= 5)
-                        load_dcard3 <= 1;
-                    state <= OVER;
-                end
-                OVER: begin //Score calculation
-                    if (pscore > dscore)
-                        player_win_light <= 1;
-                    else if (dscore > pscore)
-                        dealer_win_light <= 1;
-                    else if (pscore == dscore) begin
-                        dealer_win_light <= 1;
-                        player_win_light <= 1;
-                    end
-                    state <= IDLE;
-                end
-                default: begin
-                    load_dcard1 <= 0;
-                    load_pcard1 <= 0;
-                    load_dcard2 <= 0;
-                    load_pcard2 <= 0;
-                    load_dcard3 <= 0;
-                    load_pcard3 <= 0;
-                end
+                D3_1: state <= OVER;
+                D3_2: state <= OVER;
+                OVER: state <= IDLE;
+                default: state <= IDLE;
             endcase
         end
+    end
+
+//Machine Output Logic
+    always_comb begin
+        load_pcard1 = 0;
+		load_pcard2 = 0;
+		load_pcard3 = 0;
+		load_dcard1 = 0;
+		load_dcard2 = 0;
+		load_dcard3 = 0;
+        player_win_light = 0;
+        dealer_win_light = 0;
+        case(state)
+            P1: load_pcard1 = 1;
+            D1: load_dcard1 = 1;
+            P2: load_pcard2 = 1;
+            D2: load_dcard2 = 1;
+            P3: begin //Player gets 3rd card condition
+                if (pscore >= 0 && pscore <= 5)
+                    load_pcard3 = 1;
+                else
+                    load_pcard3 = 0;
+            end
+            D3_1: begin // Dealer gets 3rd card condition if player gets 3rd card
+                load_dcard3 = 0;
+                case (dscore)
+                    7: load_dcard3 = 0;
+                    6: begin
+                        if (pcard3 == 6 || pcard3 == 7)
+                            load_dcard3 = 1;
+                    end
+                    5: begin
+                        if (pcard3 >= 4 && pcard3 <=7)
+                            load_dcard3 = 1;
+                    end
+                    4: begin
+                        if (pcard3 >= 2 && pcard3 <=7)
+                            load_dcard3 = 1;
+                    end
+                    3: begin
+                        if (pcard3 != 8)
+                            load_dcard3 = 1;
+                    end
+                    default: load_dcard3 = 1;
+                endcase
+            end
+            D3_2: begin //Dealer gets 3rd card condition if player doesnt get 3rd card
+                if (dscore >=0 && dscore <= 5)
+                    load_dcard3 = 1;
+            end
+            OVER: begin //Score calculation
+                if (pscore > dscore)
+                    player_win_light = 1;
+                else if (dscore > pscore)
+                    dealer_win_light = 1;
+                else if (pscore == dscore) begin
+                    dealer_win_light = 1;
+                    player_win_light = 1;
+                end
+            end
+            default: begin
+                load_pcard1 = 0;
+				load_pcard2 = 0;
+				load_pcard3 = 0;
+				load_dcard1 = 0;
+				load_dcard2 = 0;
+				load_dcard3 = 0;
+                player_win_light = 0;
+                dealer_win_light = 0;
+            end
+        endcase
     end
 
 endmodule
