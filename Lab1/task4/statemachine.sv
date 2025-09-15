@@ -43,7 +43,7 @@ module statemachine(input logic slow_clock, input logic resetb,
                 end
                 D3_1: state <= OVER;
                 D3_2: state <= OVER;
-                OVER: state <= IDLE;
+                OVER: state <= OVER;
                 default: state <= IDLE;
             endcase
         end
