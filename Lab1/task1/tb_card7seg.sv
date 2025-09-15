@@ -8,7 +8,8 @@ module tb_card7seg;
 	//output check
 	initial begin
 		SW=4'b0000;
-		for(int i=0; i<16; i++) begin  //check all 16 states
+		#5
+		for(int i=1; i<17; i++) begin  //check all 16 states
 			$display ("SW = %b HEX0 = %b", SW, HEX0);
 			SW+=i; 
 			#5;
