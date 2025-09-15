@@ -1,8 +1,17 @@
-module tb_card7seg();
+module tb_card7seg;
+    reg [3:0] card;  
+    wire [6:0] HEX0; 
 
-// Your testbench goes here. Make sure your tests exercise the entire design
-// in the .sv file.  Note that in our tests the simulator will exit after
-// 10,000 ticks (equivalent to "initial #10000 $finish();").
-						
+    card7seg hexdisp (.card(card), .HEX(HEX0)); //module instantiation 
+
+    //display output
+    initial begin
+        card = 0;
+        repeat (16) begin
+            $display ("card = %b  HEX0 = %b", card, HEX0);
+            card += 1; #20; 
+        end
+        $stop;
+    end
 endmodule
 
