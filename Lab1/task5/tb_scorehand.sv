@@ -11,9 +11,9 @@ module tb_scorehand();
   	initial begin
   		for (int i = 0; i < 10; i++) begin
   			
-  			card1 = $urandom_range(13,0);
-  			card2 = $urandom_range(13,0);
-  			card3 = $urandom_range(13,0);
+        card1 = $urandom_range(9,0);
+        card2 = $urandom_range(9,0);
+        card3 = $urandom_range(9,0);
   			#1;
   			if ( total==(card1 + card2 + card3)%10 ) begin
   				$display("Card numbers added properly");
