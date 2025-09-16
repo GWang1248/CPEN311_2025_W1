@@ -20,12 +20,12 @@ module tb_datapath();
 	//slock clock signal
 		initial begin
 			slow_clock = 1'b0;
-			#10;
+			#50;
 			forever begin
 			slow_clock = 1'b1;
-			#10;
+			#50;
 			slow_clock = 1'b0;
-			#10;
+			#50;
 			end
 		end
 	//faset clock signal
