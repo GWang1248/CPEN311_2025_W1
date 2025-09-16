@@ -19,7 +19,7 @@ module statemachine(input logic slow_clock, input logic resetb,
     parameter OVER = 4'b1001;
 
 //State Transition Logic
-    always_ff @(posedge slow_clock or negedge resetb) begin
+    always_ff @(posedge slow_clock) begin
         if (!resetb)
             state <= IDLE;
         else begin

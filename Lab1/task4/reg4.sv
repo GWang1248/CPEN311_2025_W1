@@ -4,7 +4,7 @@ module reg4(input logic [3:0] new_card,
 			input logic slow_clock,
 			output logic [3:0] final_card);
 
-	always_ff @(posedge slow_clock or negedge resetb) begin
+	always_ff @(posedge slow_clock) begin
 		if (!resetb)
 			final_card = 4'b0;
 		else begin
