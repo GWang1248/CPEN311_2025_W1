@@ -53,6 +53,7 @@ module tb_datapath();
 			resetb = 1'b1;
 			#5
 			load_pcard1=1'b1;
+			#20
 			if(HEX0!=7'b1111111) begin
 				$display("HEX0 WORKING");
 			end
@@ -60,7 +61,8 @@ module tb_datapath();
 				$display("HEX0 NOT WORKING");
 			end
 			#20	
-			load_pcard2=1'b1;		
+			load_pcard2=1'b1;
+			#20
 			if(HEX1!=7'b1111111) begin
 				$display("HEX1 WORKING");
 			end
@@ -69,6 +71,7 @@ module tb_datapath();
 			end
 			#20
 			load_pcard3=1'b1;
+			#20
 			if(HEX2!=7'b1111111) begin
 				$display("HEX2 WORKING");
 			end
@@ -77,6 +80,7 @@ module tb_datapath();
 			end
 			#20
 			load_dcard1=1'b1;
+			#20
 			if(HEX3!=7'b1111111) begin
 				$display("HEX3 WORKING");
 			end
@@ -85,6 +89,7 @@ module tb_datapath();
 			end
 			#20
 			load_dcard2=1'b1;
+			#20
 			if(HEX4!=7'b1111111) begin
 				$display("HEX4 WORKING");
 			end
@@ -93,6 +98,7 @@ module tb_datapath();
 			end
 			#20
 			load_dcard3=1'b1;
+			#20
 			if(HEX5!=7'b1111111) begin
 				$display("HEX5 WORKING");
 			end
@@ -101,6 +107,7 @@ module tb_datapath();
 			end
 			#20
 			resetb=1'b0;
+			#20
 			if(HEX == 42'b1) begin
 				$display("RESET WORKING");
 			end
