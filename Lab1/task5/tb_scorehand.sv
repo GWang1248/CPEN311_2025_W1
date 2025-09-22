@@ -8,7 +8,8 @@ module tb_scorehand();
   	//instantiate scorehand variables
   	scorehand result(.card1, .card2, .card3, .total);
   	
-  	initial begin
+  	initial begin 
+      //random card values generated, then the first digit of the cards added with each other. Will indicate if the values are correct
   		for (int i = 0; i < 10; i++) begin
   			
         card1 = $urandom_range(9,0);
@@ -16,7 +17,7 @@ module tb_scorehand();
         card3 = $urandom_range(9,0);
   			#1;
   			if ( total==(card1 + card2 + card3)%10 ) begin
-  				$display("Card numbers added properly");
+          $display("Card numbers added properly"); 
   			end
   			else begin
   				$display("Card numbers failed to add properly");
