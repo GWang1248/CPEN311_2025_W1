@@ -7,6 +7,7 @@ module tb_datapath();
 	logic [3:0] pcard3_out, pscore_out, dscore_out;
 	logic [6:0] HEX0, HEX1, HEX2, HEX3, HEX4, HEX5;
 	
+	//insantiation of datapath.sv
 datapath dp(.slow_clock(slow_clock), .fast_clock(fast_clock), .resetb(resetb),
 
 .load_pcard1(load_pcard1), .load_pcard2(load_pcard2), .load_pcard3(load_pcard3), .load_dcard1(load_dcard1), .load_dcard2(load_dcard2), .load_dcard3(load_dcard3),
