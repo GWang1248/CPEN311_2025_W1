@@ -24,7 +24,7 @@ module tb_statemachine();
     .dealer_win_light(dealer_win_light)
   );
 
-  initial begin
+  initial begin //slow clock
   	slow_clock = 1'b0; #50;
   	forever begin
 	slow_clock = 1'b1; #50;
