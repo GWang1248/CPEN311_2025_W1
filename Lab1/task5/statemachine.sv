@@ -5,51 +5,45 @@ module statemachine(input logic slow_clock, input logic resetb,
                     output logic player_win_light, output logic dealer_win_light);
 
 //Define States
-    logic [3:0] state;
+    logic [3:0] state, next_state;
 
     parameter IDLE = 4'b0000;
     parameter P1 = 4'b0001;
     parameter D1 = 4'b0010;
     parameter P2 = 4'b0011;
     parameter D2 = 4'b0100;
-    parameter DIVERGE = 4'b0101;
     parameter P3 = 4'b0110;
-    parameter D3_1 = 4'b0111;
-    parameter D3_2 = 4'b1000;
-    parameter OVER = 4'b1001;
+    parameter D3 = 4'b0111;
+    parameter OVER = 4'b1000;
 
-//State Transition Logic
+    //Register Logic
     always_ff @(posedge slow_clock) begin
         if (!resetb)
             state <= IDLE;
-        else begin
-            case (state)
-                IDLE: state <= P1;
-                P1: state <= D1;
-                D1: state <= P2;
-                P2: state <= D2;
-                D2: state <= DIVERGE;
-                DIVERGE: begin
-                    if (pscore >= 8 || dscore >= 8) //Natural
-                        state <= OVER;
-                    else //Player scores 0 to 7
-                        state <= P3;
-                end
-                P3: begin
-                    if (pscore >= 0 && pscore <= 5)
-                        state <= D3_1;
-                    else
-                        state <= D3_2;
-                end
-                D3_1: state <= OVER;
-                D3_2: state <= OVER;
-                OVER: state <= OVER;
-                default: state <= IDLE;
-            endcase
-        end
+        else
+            state <= next_state;
     end
 
-//Machine Output Logic
+    //State Transition Logic
+    always_comb begin
+        case (state)
+            IDLE: next_state = P1;
+            P1: next_state = D1;
+            D1: next_state = P2;
+            P2: next_state = D2;
+            D2: begin
+                if (pscore >= 8 || dscore >= 8) //Natural
+                    next_state = OVER;
+                else //Player scores 0 to 7
+                    next_state = P3;
+            end
+            P3: next_state = D3;
+            D3: next_state = OVER;
+            OVER: next_state = OVER;
+        endcase
+    end
+
+    //Machine Output Logic
     always_comb begin
         load_pcard1 = 0;
 		load_pcard2 = 0;
@@ -70,32 +64,34 @@ module statemachine(input logic slow_clock, input logic resetb,
                 else
                     load_pcard3 = 0;
             end
-            D3_1: begin // Dealer gets 3rd card condition if player gets 3rd card
-                load_dcard3 = 0;
-                case (dscore)
-                    7: load_dcard3 = 0;
-                    6: begin
-                        if (pcard3 == 6 || pcard3 == 7)
+            D3: begin
+                if (load_pcard3) begin // Dealer gets 3rd card condition if player gets 3rd card
+                    load_dcard3 = 0;
+                    case (dscore)
+                        7: load_dcard3 = 0;
+                        6: begin
+                            if (pcard3 == 6 || pcard3 == 7)
+                                load_dcard3 = 1;
+                        end
+                        5: begin
+                            if (pcard3 >= 4 && pcard3 <=7)
+                                load_dcard3 = 1;
+                        end
+                        4: begin
+                            if (pcard3 >= 2 && pcard3 <=7)
+                                load_dcard3 = 1;
+                        end
+                        3: begin
+                                if (pcard3 != 8)
                             load_dcard3 = 1;
-                    end
-                    5: begin
-                        if (pcard3 >= 4 && pcard3 <=7)
-                            load_dcard3 = 1;
-                    end
-                    4: begin
-                        if (pcard3 >= 2 && pcard3 <=7)
-                            load_dcard3 = 1;
-                    end
-                    3: begin
-                        if (pcard3 != 8)
-                            load_dcard3 = 1;
-                    end
-                    default: load_dcard3 = 1;
-                endcase
-            end
-            D3_2: begin //Dealer gets 3rd card condition if player doesnt get 3rd card
-                if (dscore >=0 && dscore <= 5)
-                    load_dcard3 = 1;
+                        end
+                        default: load_dcard3 = 1;
+                    endcase
+                end
+                else begin //Dealer gets 3rd card condition if player doesnt get 3rd card
+                    if (dscore >=0 && dscore <= 5)
+                        load_dcard3 = 1;
+                end
             end
             OVER: begin //Score calculation
                 if (pscore > dscore)
