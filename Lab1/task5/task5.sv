@@ -8,7 +8,7 @@ module task5(input logic CLOCK_50, input logic [3:0] KEY, output logic [9:0] LED
 
 // some local signals 
 
-logic fast_clock, slow_clock, resetb;
+logic fast_clock, slow_clock, resetb, clock_tick;
 logic load_pcard1, load_pcard2, load_pcard3;
 logic load_dcard1, load_dcard2, load_dcard3;
 logic [3:0] pscore, dscore;
@@ -57,5 +57,12 @@ statemachine sm(.slow_clock(slow_clock),
                 .load_dcard3(load_dcard3),	
                 .player_win_light(LEDR[8]), 
                 .dealer_win_light(LEDR[9]));
+
+// Instantiate the debouncer
+
+debouncer db(.clock(fast_clock),
+            .slow_clock(slow_clock),
+            .resetb(resetb),
+            .clock_tick(clock_tick));
 
 endmodule
