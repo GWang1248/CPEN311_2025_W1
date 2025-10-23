@@ -4,129 +4,123 @@ module circle(input logic clk, input logic rst_n, input logic [2:0] colour,
               output logic [7:0] vga_x, output logic [6:0] vga_y,
               output logic [2:0] vga_colour, output logic vga_plot);
 
-     parameter BLACK = 3'b000;
-     parameter BLUE = 3'b001;
      parameter GREEN = 3'b010;
-     parameter YELLOW = 3'b110;
-     parameter RED = 3'b100;
-     parameter WHITE = 3'b111;
 
-     logic [7:0] offset_x, offset_y;
+     assign vga_colour = GREEN;
+
+     logic [9:0] offset_x, offset_y;
      logic [2:0] plot_counter;
-     logic signed [9:0] crit;
-     enum logic [2:0] {IDLE, CALC, DRAW, DONE} state, next_state;
+     logic signed [11:0] crit;
+     enum logic [5:0] {IDLE, CALC, O1, O2, O3, O4, O5, O6, O7, O8, DONE} state, next_state;
 
      always_ff @(posedge clk) begin //Statemachine Transition
           if (!rst_n) begin
                state <= IDLE;
+               offset_y <= 0;
+               offset_x <= 0;
+               crit <= 0;
+               done <= 0;
           end
           else begin
-               vga_colour <= GREEN;
                state <= next_state;
+               done <= 1'b0;
                case (state)
-               IDLE: begin
-                    if (start) begin
-                         offset_y <= 0;
-                         offset_x <= radius;
-                         crit <= 1 - radius;
+                    IDLE: begin
+                         if (start) begin
+                              offset_y <= 0;
+                              offset_x <= $signed({2'b00,radius});
+                              crit <= 1 - $signed({4'b0000,radius});
+                         end
                     end
-               end
-               CALC: begin
-                    offset_y <= offset_y + 1;
-                    if (crit <= 0)
-                         crit <= crit + 2 * offset_y + 1;
-                    else begin
-                         offset_x <= offset_x + 1;
-                         crit <= crit + 2 * (offset_y - offset_x) + 1;
+                    CALC: begin
+                         offset_y <= offset_y + 1;
+                         if (crit <= 0)
+                              crit <= crit + 2 * offset_y + 1;
+                         else begin
+                              offset_x <= offset_x + 1;
+                              crit <= crit + 2 * (offset_y - offset_x) + 1;
+                         end
                     end
-               end
-               DRAW: vga_plot <= 1'b1;
-               DONE: done <= 1'b1;
-               default: vga_plot <= 1'b0;
-          endcase
-          end
-     end
-
-     always_ff @(posedge clk or negedge rst_n) begin //Plot Counter
-          if (!rst_n)
-               plot_counter <= 3'd0;
-          else begin
-               case (state)
-                    DRAW: plot_counter <= plot_counter + 3'd1;
-                    default: plot_counter <= 3'd0;
+                    DONE: done <= 1'b1;
+                    default: done <= 1'b0;
                endcase
           end
      end
 
      always_comb begin //Process State Transition Logic
+		vga_x = 8'b0;
+		vga_y = 7'b0;
           case (state)
                IDLE: begin
                     if (start)
-                         next_state = CALC;
+                         next_state = O1;
                     else
                          next_state = IDLE;
+                    vga_plot = 1'b0;
+               end
+               O1: begin
+                    vga_x = centre_x + offset_x;
+                    vga_y = centre_y + offset_y;
+                    vga_plot = 1'b1;
+                    next_state = O2;
+               end
+               O2: begin
+                    vga_x = centre_x + offset_y;
+                    vga_y = centre_y + offset_x;
+                    vga_plot = 1'b1;
+                    next_state = O3;
+               end
+               O3: begin
+                    vga_x = centre_x - offset_x;
+                    vga_y = centre_y + offset_y;
+                    vga_plot = 1'b1;
+                    next_state = O4;
+               end
+               O4: begin
+                    vga_x = centre_x - offset_y;
+                    vga_y = centre_y + offset_x;
+                    vga_plot = 1'b1;
+                    next_state = O5;
+               end
+               O5: begin
+                    vga_x = centre_x - offset_x;
+                    vga_y = centre_y - offset_y;
+                    vga_plot = 1'b1;
+                    next_state = O6;
+               end
+               O6: begin
+                    vga_x = centre_x - offset_y;
+                    vga_y = centre_y - offset_x;
+                    vga_plot = 1'b1;
+                    next_state = O7;
+               end
+               O7: begin
+                    vga_x = centre_x + offset_y;
+                    vga_y = centre_y - offset_x;
+                    vga_plot = 1'b1;
+                    next_state = O8;
+               end
+               O8: begin
+                    vga_x = centre_x + offset_x;
+                    vga_y = centre_y - offset_y;
+                    vga_plot = 1'b1;
+                    next_state = CALC;
                end
                CALC: begin
-                    if (offset_y + 1 > offset_x || radius == 8'd0)
+                    if (offset_y > offset_x)
                          next_state = DONE;
                     else
-                         next_state = DRAW;
+                         next_state = O1;
+                    vga_plot = 1'b0;
                end
-               DRAW: begin
-                    if (plot_counter == 3'd7)
-                         next_state = CALC;
-                    else
-                         next_state = DRAW;
+               DONE: begin
+                    next_state = DONE;
+                    vga_plot = 1'b0;
                end
-               DONE: next_state = IDLE;
-               default: next_state = IDLE;
+               default: begin 
+                    next_state = IDLE;
+                    vga_plot = 1'b0;
+               end
           endcase
-     end
-
-     always_comb begin //Octant Pixel Drawing Logic
-          if (state == DRAW) begin
-               case (plot_counter)
-                    3'd0: begin
-                         vga_x = centre_x + offset_x;
-                         vga_y = centre_y + offset_y;
-                    end
-                    3'd1: begin
-                         vga_x = centre_x + offset_y;
-                         vga_y = centre_y + offset_x;
-                    end
-                    3'd2: begin
-                         vga_x = centre_x - offset_x;
-                         vga_y = centre_y + offset_y;
-                    end
-                    3'd3: begin
-                         vga_x = centre_x - offset_y;
-                         vga_y = centre_y + offset_x;
-                    end
-                    3'd4: begin
-                         vga_x = centre_x - offset_x;
-                         vga_y = centre_y - offset_y;
-                    end
-                    3'd5: begin
-                         vga_x = centre_x - offset_y;
-                         vga_y = centre_y - offset_x;
-                    end
-                    3'd6: begin
-                         vga_x = centre_x + offset_x;
-                         vga_y = centre_y - offset_y;
-                    end
-                    3'd7: begin
-                         vga_x = centre_x + offset_y;
-                         vga_y = centre_y - offset_x;
-                    end
-                    default: begin
-                         vga_x = 8'd0;
-                         vga_y = 7'd0;
-                    end
-               endcase
-          end
-          else begin
-               vga_x = 8'd0;
-               vga_y = 7'd0;
-          end
      end
 endmodule
