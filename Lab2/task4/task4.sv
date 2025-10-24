@@ -7,9 +7,12 @@ module task4(input logic CLOCK_50, input logic [3:0] KEY,
              output logic [7:0] VGA_X, output logic [6:0] VGA_Y,
              output logic [2:0] VGA_COLOUR, output logic VGA_PLOT);
 
-        parameter diameter = 7'd80;
-        parameter centre_x = 8'd80;
-        parameter centre_y = 7'd60;
+    parameter diameter = 7'd80;
+    parameter centre_x = 8'd80;
+    parameter centre_y = 7'd60;
+
+    logic [2:0] colour;
+    logic start, done;
 
     reuleaux rl(.clk(CLOCK_50), .rst_n(KEY[3]), .colour(colour), .centre_x(centre_x), .centre_y(centre_y),
                 .diameter(diameter), .start(start), .done(done), .vga_x(VGA_X), .vga_y(VGA_Y), .vga_colour(VGA_COLOUR), .vga_plot(VGA_PLOT));
