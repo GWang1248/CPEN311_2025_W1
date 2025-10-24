@@ -21,7 +21,7 @@ module reuleaux(input logic clk, input logic rst_n, input logic [2:0] colour,
     assign centre_y2 = centre_y + diameter * CONST / 6000;
     assign centre_y3 = centre_y - diameter * CONST / 3000;
 
-    enum logic [2:0] {IDLE, C1, C2, C3} state, next_state;
+    enum logic [3:0] {IDLE, C1, C2, C3, DONE} state, next_state;
 
     always_ff @(posedge clk) begin
         if (!rst_n)
@@ -56,9 +56,14 @@ module reuleaux(input logic clk, input logic rst_n, input logic [2:0] colour,
             C3: begin
                 start3 = 1;
                 if (done)
-                    next_state = IDLE;
+                    next_state = DONE;
                 else
                     next_state = C3;
+            end
+            DONE: begin
+                start2 = 0;
+                start3 = 0;
+                next_state = DONE;
             end
             default: next_state = IDLE;
         endcase
