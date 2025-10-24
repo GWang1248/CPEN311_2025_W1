@@ -12,6 +12,7 @@ module reuleaux(input logic clk, input logic rst_n, input logic [2:0] colour,
     logic [2:0] vga_colour1, vga_colour2, vga_colour3;
     logic done1, done2, start2, start3;
     logic vga_plot1, vga_plot2, vga_plot3;
+    logic [17:0] r_2; /////added
 
     assign centre_x1 = centre_x + diameter / 2;
     assign centre_x2 = centre_x - diameter / 2;
@@ -20,8 +21,21 @@ module reuleaux(input logic clk, input logic rst_n, input logic [2:0] colour,
     assign centre_y1 = centre_y + diameter * CONST / 6000;
     assign centre_y2 = centre_y + diameter * CONST / 6000;
     assign centre_y3 = centre_y - diameter * CONST / 3000;
+	
+    assign r_2 = diameter * diameter;
 
     enum logic [3:0] {IDLE, C1, C2, C3, DONE} state, next_state;
+	//////added
+	function automatic logic inside_circle(input [7:0] px, input [6:0] py,input [7:0] cx, input [6:0] cy,input [17:0] r_square);
+        logic signed [10:0] dx, dy;   // enough for -159~159, -119~119
+        logic [21:0] d_square;
+        begin
+   	dx = $signed({1'b0, px}) - $signed({1'b0, cx});
+    	dy = $signed({1'b0, py}) - $signed({1'b0, cy});
+    	d_square = dx*dx + dy*dy;
+	inside_circle = (d_square <= r_square);
+        end
+  	endfunction
 
     always_ff @(posedge clk) begin
         if (!rst_n)
@@ -78,20 +92,20 @@ module reuleaux(input logic clk, input logic rst_n, input logic [2:0] colour,
             C1: begin
                 vga_x = vga_x1;
                 vga_y = vga_y1;
-                vga_colour = vga_colour1;
-                vga_plot = vga_plot1;
+                vga_colour = vga_colour1; ///added below, same for C2 and C3
+                vga_plot = vga_plot1 & inside_circle(vga_x1, vga_y1, centre_x2, centre_y2, r_2) & inside_circle(vga_x1, vga_y1, centre_x3, centre_y3, r_2);
             end
             C2: begin
                 vga_x = vga_x2;
                 vga_y = vga_y2;
                 vga_colour = vga_colour2;
-                vga_plot = vga_plot2;
+                vga_plot = vga_plot2 & inside_circle(vga_x2, vga_y2, centre_x1, centre_y1, r_2) & inside_circle(vga_x2, vga_y2, centre_x3, centre_y3, r_2);
             end
             C3: begin
                 vga_x = vga_x3;
                 vga_y = vga_y3;
                 vga_colour = vga_colour3;
-                vga_plot = vga_plot3;
+                vga_plot = vga_plot3 & inside_circle(vga_x3, vga_y3, centre_x1, centre_y1, r_2) & inside_circle(vga_x3, vga_y3, centre_x2, centre_y2, r_2);
             end
             default: begin
                 vga_x = 0;
