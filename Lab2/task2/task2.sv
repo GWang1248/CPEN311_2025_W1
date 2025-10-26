@@ -22,13 +22,15 @@ module task2(input logic CLOCK_50, input logic [3:0] KEY,
 	.VGA_G(VGA_G), .VGA_B(VGA_B), .VGA_HS(VGA_HS), .VGA_VS(VGA_VS), .VGA_BLANK(VGA_BLANK), .VGA_SYNC(VGA_SYNC), .VGA_CLK(VGA_CLK));
 
 	always_ff @(posedge CLOCK_50) begin
-		if(!KEY[3])
-			start = 1'b0;
-		else
-			start = 1'b1;
-		if (done)
-			start = 1'b0;
+        if(!KEY[3])
+            start <= 1'b0;
+        else begin
+        if(!done && !start)
+	start <= 1'b1;
+	if (done)
+	start <= 1'b0;
 	end
+end
 		
 
 endmodule: task2
