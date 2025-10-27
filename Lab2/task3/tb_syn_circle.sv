@@ -1,4 +1,4 @@
-module tb_rtl_circle();
+module tb_syn_circle();
 	//input
 	logic clk;
   	logic rst_n;
@@ -84,4 +84,4 @@ module tb_rtl_circle();
 	end
 	
 
-endmodule: tb_rtl_circle
+endmodule: tb_syn_circle
