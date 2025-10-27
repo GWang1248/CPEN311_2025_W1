@@ -58,4 +58,5 @@ module tb_syn_fillscreen();
     	end else begin
       		$error("at the end, start should be zero");
     	end
+	end
   endmodule: tb_syn_fillscreen
