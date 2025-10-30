@@ -77,7 +77,7 @@ class Driver;
     virtual MyBus bus;
     mailbox #(RoundTrans) gen2drv;
 
-    function new (virtual MyBus bus, mailbox #(RoundTrans) mbogen2drvx);
+    function new (virtual MyBus bus, mailbox #(RoundTrans) gen2drvx);
         this.bus = bus;
         this.gen2drv = gen2drv;
     endfunction
@@ -150,7 +150,7 @@ class Monitor;
                 s.load_d3 = bus.cb.load_dcard3;
                 s.player_win_light = bus.cb.player_win_light;
                 s.dealer_win_light = bus.cb.dealer_win_light;
-                mbox.put(s);
+                mon2sb.put(s);
 
                 if (state_in_round >= 9) begin
                     in_round = 0;
@@ -160,15 +160,18 @@ class Monitor;
     endtask
 endclass
 
+//Scoreboard act as a final judge of the legitimacy of DUT
 class Scoreboard;
     mailbox #(out_sample_t) mon2sb;
     mailbox #(RoundTrans) drv_snap;
 
+    //Obtain monitor (real output from DUT) and driver (Original Input Stimuli) from mailbox
     function new (mailbox #(out_sample_t) mon2sb, mailbox #(RoundTrans) drv_snap);
         this.mon2sb = mon2sb;
         this.drv_snap = drv_snap;
     endfunction
 
+    //Check which state should the DUT be in right now
     function string state_of_cycle (int k, RoundTrans tr);
         // k=1->P1, 2->D1, 3->P2, 4->D2, 5->P3/OVER, 6->D3/OVER, 7->OVER
         if (k == 1) return "P1";
@@ -228,7 +231,7 @@ class Scoreboard;
 
         for (int i = 0; i <= 9; i++) begin
             bit loadp1, loadp2, loadp3, loadd1, loadd2, loadd3, player_win_light, dealer_win_light;
-            expected_at_cycle (i, tr, loadp1, loadp3, loadp3, loadd1, loadd2, loadd3, player_win_light, dealer_win_light);
+            expected_at_cycle (i, tr, loadp1, loadp2, loadp3, loadd1, loadd2, loadd3, player_win_light, dealer_win_light);
 
             mon2sb.get(s);
 
@@ -245,6 +248,7 @@ class Scoreboard;
         end
     endtask
     
+
     task run (int round = 10);
         RoundTrans tr;
         repeat (round) begin
@@ -255,3 +259,4 @@ class Scoreboard;
         $display("[%0t][SB] All rounds checked.", $time);
     endtask
 endclass
+
