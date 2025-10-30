@@ -45,8 +45,8 @@ class RoundTrans;
         pcard3 inside {[0:9]};
     }
 
-    function display();
-        $display("[%0t] pscore = %0d dscore = %0d pcard3 = %0d", $time, pscore, dscore, pcard3);
+    function display(string tag = "tr");
+        $display("[%0t] %s pscore = %0d dscore = %0d pcard3 = %0d", $time, tag, pscore, dscore, pcard3);
     endfunction
 endclass
 
@@ -67,6 +67,95 @@ class Generator;
             SV_RAND_CHECK(tr.randomize());
             tr.display();
             mbox.put(tr);
+        end
+    endtask
+endclass
+
+//Driver get data generated from Generator (type RoundTrans)
+//Put data into clocking block to drive them through DUT
+class Driver;
+    virtual MyBus bus;
+    mailbox #(RoundTrans) mbox;
+
+    function new (virtual MyBus bus, mailbox #(RoundTrans) mbox);
+        this.bus = bus;
+        this.mbox = mbox;
+    endfunction
+
+    task run_a_round(RoundTrans tr);
+        bus.cb.pscore <= tr.pscore;
+        bus.cb.dscore <= tr.dscore;
+        bus.cb.pcard3 <= tr.pcard3;
+
+        bus.cb.resetb <= 0;
+        repeat (2) @(bus.cb);
+        bus.cb.resetb <= 1;
+
+        repeat (9) @(bus.cb);
+    endtask
+
+    task run();
+        RoundTrans tr;
+        forever begin
+            mbox.get(tr);
+            tr.display();
+            run_a_round(tr);
+        end
+    endtask
+endclass
+
+//Monitor structure to take DUT output and ready to put into mailbox
+//Complete output signal of the DUT
+typedef struct packed {
+    int state;
+    bit load_p1, load_p2, load_p3;
+    bit load_d1, load_d2, load_d3;
+    bit player_win_light, dealer_win_light;
+} out_sample_t;
+
+//Observe output signal from DUT
+class Monitor;
+    virtual MyBus bus;
+    mailbox #(out_sample_t) mbox;
+
+    int state_in_round;
+    bit in_round;
+
+    function new (virtual MyBus bus, mailbox #(out_sample_t) mbox);
+        this.bus = bus;
+        this.mbox = mbox;
+        this.state_in_round = 0;
+        this.in_round = 0;
+    endfunction
+
+    task run();
+        forever begin
+            //Observe the resetb from DUT to determine the testing round start
+            @(bus.cb);
+            if (bus.cb.resetb == 1 && !in_round) begin
+                in_round = 1;
+                state_in_round = 0;
+            end
+
+            //Store DUT output to out_sample_t type, put into mailbox
+            if (in_round) begin
+                out_sample_t s;
+                state_in_round++;
+                s.state = state_in_round;
+                s.load_p1 = bus.cb.load_pcard1;
+                s.load_p2 = bus.cb.load_pcard2;
+                s.load_p3 = bus.cb.load_pcard3;
+                s.load_d1 = bus.cb.load_dcard1;
+                s.load_d2 = bus.cb.load_dcard2;
+                s.load_d3 = bus.cb.load_dcard3;
+                s.player_win_light = bus.cb.player_win_light;
+                s.dealer_win_light = bus.cb.dealer_win_light;
+                mbox.put(s);
+
+                if (state_in_round >= 9) begin
+                    in_round = 0;
+                end
+            end
         end
     endtask
 endclass
