@@ -22,6 +22,7 @@ interface MyBus (input logic slow_clock);
     //We take the value of other inputs
     clocking cb @(posedge slow_clock);
 
+        default input #1step output #1step; //Clock skew
         //input in clocking block means output produced from the DUT
         input load_pcard1, load_pcard2, load_pcard3;
         input load_dcard1, load_dcard2, load_dcard3;
@@ -64,7 +65,7 @@ class Generator;
         RoundTrans tr;
         repeat (rounds) begin
             tr = new();
-            SV_RAND_CHECK(tr.randomize());
+            `SV_RAND_CHECK(tr.randomize());
             tr.display("GN");
             gen2drv.put(tr);
         end
@@ -77,7 +78,7 @@ class Driver;
     virtual MyBus bus;
     mailbox #(RoundTrans) gen2drv;
 
-    function new (virtual MyBus bus, mailbox #(RoundTrans) gen2drvx);
+    function new (virtual MyBus bus, mailbox #(RoundTrans) gen2drv);
         this.bus = bus;
         this.gen2drv = gen2drv;
     endfunction
@@ -216,7 +217,7 @@ class Scoreboard;
                 endcase
             end
             else begin
-                loadd3 = (tr.pscore <= 5);
+                loadd3 = (tr.dscore <= 5);
             end
         end
         else if (st == "OVER") begin
@@ -229,7 +230,7 @@ class Scoreboard;
     task check_one_round (RoundTrans tr);
         out_sample_t s;
 
-        for (int i = 0; i <= 9; i++) begin
+        for (int i = 1; i <= 9; i++) begin
             bit loadp1, loadp2, loadp3, loadd1, loadd2, loadd3, player_win_light, dealer_win_light;
             expected_at_cycle (i, tr, loadp1, loadp2, loadp3, loadd1, loadd2, loadd3, player_win_light, dealer_win_light);
 
@@ -260,3 +261,56 @@ class Scoreboard;
     endtask
 endclass
 
+module tb;
+
+    logic slow_clock = 0;
+    always #5 slow_clock = ~slow_clock;
+
+    MyBus bus (.slow_clock(slow_clock));
+    statemachine dut (
+        .slow_clock(slow_clock),
+        .resetb(bus.resetb),
+        .dscore(bus.dscore),
+        .pscore(bus.pscore),
+        .pcard3(bus.pcard3),
+        .load_pcard1(bus.load_pcard1),
+        .load_pcard2(bus.load_pcard2),
+        .load_pcard3(bus.load_pcard3),
+        .load_dcard1(bus.load_dcard1),
+        .load_dcard2(bus.load_dcard2),
+        .load_dcard3(bus.load_dcard3),
+        .player_win_light(bus.player_win_light),
+        .dealer_win_light(bus.dealer_win_light)
+    );
+
+    mailbox #(RoundTrans) gen2drv = new();
+    mailbox #(out_sample_t) mon2sb = new();
+    mailbox #(RoundTrans) drv2sb_tr = new();
+
+    Generator gen;
+    Driver drv;
+    Monitor mon;
+    Scoreboard sb;
+
+    initial begin
+        gen = new(gen2drv);
+        drv = new(bus, gen2drv);
+        mon = new(bus, mon2sb);
+        sb = new(mon2sb, drv2sb_tr);
+
+        bus.cb.resetb <= 0;
+        bus.cb.pscore <= 0;
+        bus.cb.dscore <= 0;
+        bus.cb.pcard3 <= 0;
+
+        fork 
+            gen.run(10);
+            drv.run();
+            mon.run();
+            sb.run(10);
+        join_any
+
+        #50 $display("[%0t] TB finished", $time);
+        $finish;
+    end
+endmodule
