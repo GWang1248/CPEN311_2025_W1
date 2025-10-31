@@ -77,10 +77,12 @@ endclass
 class Driver;
     virtual MyBus bus;
     mailbox #(RoundTrans) gen2drv;
+    mailbox #(RoundTrans) drv_snap;
 
-    function new (virtual MyBus bus, mailbox #(RoundTrans) gen2drv);
+    function new (virtual MyBus bus, mailbox #(RoundTrans) gen2drv, mailbox #(RoundTrans) drv_snap);
         this.bus = bus;
         this.gen2drv = gen2drv;
+        this.drv_snap = drv_snap;
     endfunction
 
     task run_a_round(RoundTrans tr);
@@ -88,9 +90,9 @@ class Driver;
         bus.cb.dscore <= tr.dscore;
         bus.cb.pcard3 <= tr.pcard3;
 
-        bus.cb.resetb <= 0;
+        bus.resetb <= 0;
         repeat (2) @(bus.cb);
-        bus.cb.resetb <= 1;
+        bus.resetb <= 1;
 
         repeat (9) @(bus.cb);
     endtask
@@ -100,6 +102,7 @@ class Driver;
         forever begin
             gen2drv.get(tr);
             tr.display("DR");
+            drv_snap.put(tr);
             run_a_round(tr);
         end
     endtask
@@ -122,6 +125,8 @@ class Monitor;
     int state_in_round;
     bit in_round;
 
+    bit arm_start;
+
     function new (virtual MyBus bus, mailbox #(out_sample_t) mon2sb);
         this.bus = bus;
         this.mon2sb = mon2sb;
@@ -133,9 +138,12 @@ class Monitor;
         forever begin
             //Observe the resetb from DUT to determine the testing round start
             @(bus.cb);
-            if (bus.cb.resetb == 1 && !in_round) begin
+            if (bus.resetb == 1 && !in_round && !arm_start)
+                arm_start = 1;
+            else if (arm_start) begin
                 in_round = 1;
                 state_in_round = 0;
+                arm_start = 0;
             end
 
             //Store DUT output to out_sample_t type, put into mailbox and forward to scoreboard
@@ -258,6 +266,7 @@ class Scoreboard;
             check_one_round(tr);
         end
         $display("[%0t][SB] All rounds checked.", $time);
+        $finish;
     endtask
 endclass
 
@@ -285,7 +294,7 @@ module tb;
 
     mailbox #(RoundTrans) gen2drv = new();
     mailbox #(out_sample_t) mon2sb = new();
-    mailbox #(RoundTrans) drv2sb_tr = new();
+    mailbox #(RoundTrans) drv2sb = new();
 
     Generator gen;
     Driver drv;
@@ -294,11 +303,11 @@ module tb;
 
     initial begin
         gen = new(gen2drv);
-        drv = new(bus, gen2drv);
+        drv = new(bus, gen2drv, drv2sb);
         mon = new(bus, mon2sb);
-        sb = new(mon2sb, drv2sb_tr);
+        sb = new(mon2sb, drv2sb);
 
-        bus.cb.resetb <= 0;
+        bus.resetb <= 0;
         bus.cb.pscore <= 0;
         bus.cb.dscore <= 0;
         bus.cb.pcard3 <= 0;
@@ -308,8 +317,8 @@ module tb;
             drv.run();
             mon.run();
             sb.run(10);
-        join_any
-
+        join
+	    
         #50 $display("[%0t] TB finished", $time);
         $finish;
     end
