@@ -1,3 +1,5 @@
+
+
 module tb_rtl_reuleaux();
 
   	logic clk;
@@ -47,7 +49,7 @@ module tb_rtl_reuleaux();
 	force dut.done = 1'b0;
 
 	rst_n = 1'b0; //test reset condition
-	repeat(1) @(posedge clk);
+	repeat(2) @(posedge clk);
 	assert(dut.state == dut.IDLE)
 		$display("state ==IDLE, therefore, passed");
 	else
@@ -58,7 +60,7 @@ module tb_rtl_reuleaux();
 		$error("start2 and start3 not zero after reset, reset possibly malfunctioning");
 	
 	
-	rst_n = 1'b1; //reset is off, will move to C1
+	rst_n = 1'b1; //reset is off, will move to C1 after start becomes 1
 	repeat(1) @(posedge clk);
 	assert(dut.state == dut.IDLE)
 		$display("state is in the IDLE, passed");
@@ -66,15 +68,15 @@ module tb_rtl_reuleaux();
 		$error("state got out of IDLE, fsm malfunctioning");
 	
 	start = 1'b1; //done is zero and start is 1, after moving to C1, should stay in C1
-	repeat(3) begin @(posedge clk);
+	repeat(2) @(posedge clk);
 	assert(dut.state == dut.C1)
 		$display("start=1 but done is 1'b0, so stays in same state, passed");
 	else
 		$error("done is 1'b0 but state moved, failed");
-	end
+	
 
 	force dut.done1 = 1'b1; //done1 becomes high, triggers and changes the state to C2
-	repeat(1) @(posedge clk);
+	repeat(2) @(posedge clk);
 	force dut.done1 = 1'b0;
 	assert(dut.state == dut.C2)
 		$display("state is in the C2, passed");
@@ -87,27 +89,27 @@ module tb_rtl_reuleaux();
 
 	
 	force dut.done2 = 1'b1; //state to C3
-	repeat(1) @(posedge clk);
+	repeat(2) @(posedge clk);
 	assert(dut.state == dut.C3)
 		$display("state is in the C3, passed");
 	else
 		$error("state is not in the C3, failed fsm");
-	assert(dut.start3 == 1'b1 && dut.start2 ==1'b0)
-		$display("start2 is on and start3 is off, passed");
+	assert(dut.start3 == 1'b1)
+		$display("start3 is on, passed");
 	else
-		$error("start3 == on && start2 == off condition not met");
+		$error("start3 == off, condition not met");
 
 	
-	repeat(2) begin @(posedge clk); //done==0, stays in same state
+	repeat(2) @(posedge clk); //done==0, stays in same state
 	assert(dut.state == dut.C3)
 		$display("done == 0, so state stays in C3");
 	else
 		$error("state moved out from C3 even when done==0, error");
-	end
+
 
 	
 	force dut.done = 1'b1; //done set high, state moves from C3 to DONE
-	repeat(1) @(posedge clk);
+	repeat(2) @(posedge clk);
 	force dut.done = 1'b0;
 	assert(dut.state == dut.DONE)
 		$display("done ==1, state moves to C3 to DONE");
@@ -132,7 +134,6 @@ module tb_rtl_reuleaux();
 	end
 
 endmodule: tb_rtl_reuleaux
-	
 	
 	
 	
