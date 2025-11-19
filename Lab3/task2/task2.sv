@@ -3,108 +3,111 @@ module task2(input logic CLOCK_50, input logic [3:0] KEY, input logic [9:0] SW,
              output logic [6:0] HEX3, output logic [6:0] HEX4, output logic [6:0] HEX5,
              output logic [9:0] LEDR);
 
-    enum logic [3:0] {IDLE, INIT_RDY, INIT_EN, INIT_DOING, INIT_DONE, KSA_RDY, KSA_EN, KSA_DOING, KSA_DONE, DONE} state, next_state;
+	logic rst_n;
+    	assign rst_n = KEY[3];
 
-    logic init_en, init_rdy, init_wren;
-    logic ksa_en, ksa_rdy, ksa_wren;
-
-    logic [7:0] init_address, init_wrdata;
-    logic [7:0] ksa_address, ksa_wrdata, ksa_rddata;
-
-    logic s_wren;
-	logic [7:0] s_addr, s_wrdata;
-	logic [7:0] s_rddata;    // read data from S memory
-
-    logic [23:0] key;
-    assign key[9:0] = SW[9:0];
-    assign key[23:10] = 14'b0;
-
-    s_mem s( /* connect ports */
-		.address(s_addr),
-		.clock(CLOCK_50),
-		.data(s_wrdata),
-		.wren(s_wren),
-		.q(s_rddata));
-
-    init init(
-        .clk(CLOCK_50),
-        .rst_n(KEY[3]),
-        .en(init_en),
-        .rdy(init_rdy), 
-		.addr(init_address),
-        .wrdata(init_wrdata),
-        .wren(init_wren));
-
-	ksa ksa(
-        .clk(CLOCK_50),
-        .rst_n(KEY[3]),
-        .en(ksa_en),
-        .rdy(ksa_rdy), 
-		.key(key),
-        .addr(ksa_address),
-        .rddata(ksa_rddata),
-        .wrdata(ksa_wrdata),
-		.wren(ksa_wren));
+	logic [7:0] s_addr;
+    	logic [7:0] s_data_in;
+    	logic [7:0] s_data_out;
+    	logic s_wren;
+    
+	s_mem s( /* connect ports */ 
+	 .address (s_addr),
+        .clock   (CLOCK_50),
+        .data    (s_data_in),
+        .wren    (s_wren),
+        .q       (s_data_out));
 
     // your code here
-    always_ff @(posedge CLOCK_50) begin
-        if(!KEY[3])
-            state <= IDLE;
-        else 
-            state <= next_state;
-    end
+	logic        init_en, init_rdy;
+    	logic [7:0]  init_addr, init_wrdata;
+    	logic        init_wren;
 
-    always_comb begin
-        next_state = state;
-        init_en = 0;
-        ksa_en = 0;
-        s_wren = 0;
-        s_addr = 0;
-        s_wrdata = 0;
-        ksa_rddata = s_rddata;
-        case (state)
-            IDLE: begin
-                next_state = INIT_RDY;
-            end
-            INIT_RDY: begin
-                if (init_rdy) begin
-                    init_en = 1;
-                    next_state = INIT_EN;
-                end
-            end
-            INIT_EN: begin
-                init_en = 0;
-                next_state = INIT_DOING;
-            end
-            INIT_DOING: begin
-                s_wren = init_wren;
-                s_addr = init_address;
-                s_wrdata = init_wrdata;
-                if (init_rdy)
-                    next_state = INIT_DONE;
-            end
-            INIT_DONE: next_state = KSA_RDY;
-            KSA_RDY: begin
-                if (ksa_rdy) begin
-                    ksa_en = 1;
-                    next_state = KSA_EN;
-                end
-            end
-            KSA_EN: begin
-                ksa_en = 0;
-                next_state = KSA_DOING;
-            end
-            KSA_DOING: begin
-                s_wren = ksa_wren;
-                s_addr = ksa_address;
-                s_wrdata = ksa_wrdata;
-                if (ksa_rdy)
-                    next_state = KSA_DONE;
-            end
-            KSA_DONE: next_state = DONE;
-            DONE: ;
-            default: ;
-        endcase
-    end
+	init init_inst (
+        .clk    (CLOCK_50),
+        .rst_n  (rst_n),
+        .en     (init_en),
+        .rdy    (init_rdy),
+        .addr   (init_addr),
+        .wrdata (init_wrdata),
+        .wren   (init_wren)
+    );
+
+	logic        ksa_en, ksa_rdy;
+    	logic [7:0]  ksa_addr, ksa_wrdata;
+    	logic        ksa_wren;
+	logic [23:0] ksa_key;
+
+	assign ksa_key[9:0]   = SW[9:0];
+    	assign ksa_key[23:10] = 14'd0;
+
+	ksa ksa_inst (
+        .clk    (CLOCK_50),
+        .rst_n  (rst_n),
+        .en     (ksa_en),
+        .rdy    (ksa_rdy),
+        .key    (ksa_key),
+        .addr   (ksa_addr),
+        .rddata (s_data_out),
+        .wrdata (ksa_wrdata),
+        .wren   (ksa_wren)
+    );
+
+	typedef enum logic [1:0] {
+        INIT,
+        KSA,
+        DONE
+    	} state_t;  state_t state, next_state;
+	
+	always_ff @(posedge CLOCK_50) begin
+        if (!rst_n)
+            state <= INIT;
+        else
+            state <= next_state;
+    	end
+
+	always_comb begin
+		next_state = state;
+		init_en = 1'b0;
+        	ksa_en  = 1'b0;
+		 // Default S memory is idle
+		s_addr  = 8'd0;
+        	s_data_in = 8'd0;
+        	s_wren  = 1'b0;
+
+		case (state)
+            	INIT: begin
+                	init_en = 1'b1;
+
+                	// S memory driven by init
+                	s_addr    = init_addr;
+                	s_data_in = init_wrdata;
+                	s_wren    = init_wren;
+
+                	if (init_rdy) 
+                    	next_state = KSA;
+                	
+            	end
+
+		KSA: begin
+                	ksa_en = 1'b1;
+
+                	// S memory driven by ksa
+                	s_addr    = ksa_addr;
+                	s_data_in = ksa_wrdata;
+                	s_wren    = ksa_wren;
+
+                	if (ksa_rdy) 
+                		next_state = DONE;
+            	end
+		DONE: begin
+		// Stay here until reset.
+		end
+
+		default: 
+                next_state = INIT;
+        	endcase
+	end
+
 
 endmodule: task2
