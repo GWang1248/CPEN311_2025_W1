@@ -30,8 +30,7 @@ module task2(input logic CLOCK_50, input logic [3:0] KEY, input logic [9:0] SW,
         .rdy    (init_rdy),
         .addr   (init_addr),
         .wrdata (init_wrdata),
-        .wren   (init_wren)
-    );
+        .wren   (init_wren));
 
 	logic ksa_en, ksa_rdy;
     logic [7:0] ksa_addr, ksa_wrdata;
@@ -50,8 +49,7 @@ module task2(input logic CLOCK_50, input logic [3:0] KEY, input logic [9:0] SW,
         .addr   (ksa_addr),
         .rddata (s_data_out),
         .wrdata (ksa_wrdata),
-        .wren   (ksa_wren)
-    );
+        .wren   (ksa_wren));
 
 	typedef enum logic [1:0] {INIT, KSA, DONE} state_t;
 	state_t state, next_state;
