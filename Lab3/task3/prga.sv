@@ -113,7 +113,7 @@ module prga(input logic clk, input logic rst_n,
             end
 
             UPDATE_I: begin
-                i_next = (i + 1) % 256;
+                i_next = (i + 8'b1) % 256;
                 s_addr = i_next;
                 next_state = READ_S_I;
             end
@@ -167,7 +167,7 @@ module prga(input logic clk, input logic rst_n,
                 pt_addr = k;
                 pt_wrdata = pad ^ ct_rddata;
                 pt_wren = 1'b1;
-                k_next = k + 1;
+                k_next = k + 9'b1;
                 next_state = LOOP_START;
             end
 
