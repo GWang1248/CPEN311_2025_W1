@@ -5,7 +5,7 @@ module arc4(input logic clk, input logic rst_n,
             output logic [7:0] pt_addr, input logic [7:0] pt_rddata, output logic [7:0] pt_wrdata, output logic pt_wren);
 
     // your code here
-    typedef enum logic [2:0] {INIT, KSA, PRGA, DONE} state_t;
+    typedef enum logic [3:0] {INIT_RDY, INIT_EN, INIT, KSA_RDY, KSA_EN, KSA, PRGA_RDY, PRGA_EN, PRGA, DONE} state_t;
 	state_t state, next_state;
 
     logic [7:0] s_addr;
@@ -72,7 +72,7 @@ module arc4(input logic clk, input logic rst_n,
     // your code here
     always_ff @(posedge clk) begin
         if (!rst_n)
-            state <= INIT;
+            state <= INIT_RDY;
         else
             state <= next_state;
     end
@@ -89,33 +89,50 @@ module arc4(input logic clk, input logic rst_n,
         rdy = 1'b0;
 
 		case (state)
-            INIT: begin
-                init_en = 1'b1;
+            INIT_RDY: begin
+            	if (init_rdy) 
+                	next_state = INIT_EN;	
+            end
 
+            INIT_EN: begin
+                init_en = 1'b1;
+                next_state = INIT;	
+            end
+            INIT: begin
                 // S memory driven by init
                 s_addr    = init_addr;
                 s_data_in = init_wrdata;
             	s_wren    = init_wren;
 
             	if (init_rdy) 
-                	next_state = KSA;	
+                	next_state = KSA_RDY;	
             end
-
-			KSA: begin
+			KSA_RDY: begin
+            	if (ksa_rdy) 
+            		next_state = KSA_EN;
+            end
+            KSA_EN: begin
             	ksa_en = 1'b1;
-
+            	next_state = KSA;
+            end
+            KSA: begin
             	// S memory driven by ksa
             	s_addr    = ksa_addr;
             	s_data_in = ksa_wrdata;
             	s_wren    = ksa_wren;
 
-            	if (ksa_rdy) 
-            		next_state = PRGA;
-            	end
-
-            PRGA: begin
+            	if (ksa_rdy)
+            		next_state = PRGA_RDY;
+            end
+            PRGA_RDY: begin
+                if (prga_rdy)
+                    next_state = PRGA_EN;
+            end
+            PRGA_EN: begin
                 prga_en = 1'b1;
-
+                next_state = PRGA;
+            end
+            PRGA: begin
                 // S memory driven by prga
                 s_addr = s_address_prga;
                 s_data_in = s_wrdata_prga;
