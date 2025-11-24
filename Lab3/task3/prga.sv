@@ -103,7 +103,7 @@ module prga(input logic clk, input logic rst_n,
             WRITE_PT_0: begin
                 pt_wren = 1'b1;
                 pt_wrdata = msg_len;
-                next_state = REQ_CT
+                next_state = REQ_CT;
             end
             REQ_CT: begin
                 ct_addr = k;
