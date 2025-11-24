@@ -42,8 +42,15 @@ module crack(input logic clk, input logic rst_n,
 
     //Sequential Logic
     always_ff @(posedge clk) begin
-        if (!rst_n)
+        if (!rst_n) begin
             state <= IDLE;
+				i        <= 8'd0;
+				msg_len  <= 8'd0;
+				msg      <= 8'd0;
+				key      <= 24'd0;
+				rdy      <= 1'b1;
+				key_valid<= 1'b0;
+			end
         else begin
             state <= next_state;
             case (state)
@@ -61,20 +68,23 @@ module crack(input logic clk, input logic rst_n,
                 ARC4_EN: key_valid <= 0;
                 ARC4: ;
                 MSG_LEN_REQ: ;
-                MSG_LEN_GET: msg_len <= ct_rddata;
+                MSG_LEN_GET: begin
+							msg_len <= pt_rddata;
+							i       <= 8'd1;
+					 end
                 MSG_REQ: ;
                 MSG_GET: msg <= pt_rddata;
                 MSG_ASCII: begin 
                     if ((msg >= 8'h20) && (msg <= 8'h7E)) begin
-                        if (i < (msg_len - 8'b1))
-                            i <= i + 8'b1;
+                        if (i < msg_len)
+                            i <= i + 8'd1;
                     end
                     else
-                        i <= 8'b0;
+                        i <= 8'd0;
                 end
                 LOOP: begin
                     if (key < 24'hFFFFFF)
-                        key <= key + 24'b1;
+                        key <= key + 24'd1;
                 end
                 CHECK_YES: begin
                     key_valid <= 1'b1;
@@ -93,7 +103,6 @@ module crack(input logic clk, input logic rst_n,
     always_comb begin
         next_state = state;
         arc4_en = 1'b0;
-        arc4_rdy = 1'b0;
         ct_addr = 8'b0;
         pt_addr = 8'b0;
         pt_wrdata = 8'b0;
@@ -126,8 +135,13 @@ module crack(input logic clk, input logic rst_n,
 			    arc4_ct_rddata = ct_rddata;
                 if (arc4_rdy)
                     next_state = MSG_LEN_REQ;
+					 else
+							next_state = ARC4;
             end
-            MSG_LEN_REQ: next_state = MSG_LEN_GET;
+            MSG_LEN_REQ: begin
+					pt_addr    = 8'd0;
+					next_state = MSG_LEN_GET;
+				end
             MSG_LEN_GET: next_state = MSG_REQ;
             MSG_REQ: begin
                 pt_addr = i;
@@ -136,7 +150,7 @@ module crack(input logic clk, input logic rst_n,
             MSG_GET: next_state = MSG_ASCII;
             MSG_ASCII: begin
                     if ((msg >= 8'h20) && (msg <= 8'h7E)) begin
-                    if (i == (msg_len - 1))
+                    if (i == msg_len)
                         next_state = CHECK_YES;
                     else begin
                         next_state = MSG_REQ;
@@ -159,3 +173,4 @@ module crack(input logic clk, input logic rst_n,
     end
 
 endmodule: crack
+
