@@ -90,7 +90,8 @@ module arc4(input logic clk, input logic rst_n,
 
 		case (state)
             INIT_RDY: begin
-            	if (init_rdy) 
+            	rdy = 1'b1;
+					if (en) 
                 	next_state = INIT_EN;	
             end
 
@@ -142,7 +143,13 @@ module arc4(input logic clk, input logic rst_n,
                 if (prga_rdy)
                     next_state = DONE;
             end
-			DONE: rdy = 1;
+			DONE: begin
+				rdy = 1;
+				if (en)
+				next_state = INIT_EN;   // start a new run for a new key
+				else
+				next_state = DONE; 
+				end
 
 			default: next_state = INIT;
         endcase
