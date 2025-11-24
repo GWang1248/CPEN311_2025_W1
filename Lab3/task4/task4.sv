@@ -62,12 +62,12 @@ module task4(input logic CLOCK_50, input logic [3:0] KEY,
     always_comb begin
         next_state = state;
         en = 1'b0;
-        h0 = 4'h11;
-        h1 = 4'h11;
-        h2 = 4'h11;
-        h3 = 4'h11;
-        h4 = 4'h11;
-        h5 = 4'h11;
+        h0 = 5'h11;
+        h1 = 5'h11;
+        h2 = 5'h11;
+        h3 = 5'h11;
+        h4 = 5'h11;
+        h5 = 5'h11;
         case (state)
             INIT_RDY: begin
                 if (rdy)
@@ -82,12 +82,12 @@ module task4(input logic CLOCK_50, input logic [3:0] KEY,
             ARC4: begin
                 if (rdy)
                     next_state = DONE;
-                h0 = 4'h11;
-                h1 = 4'h11;
-                h2 = 4'h11;
-                h3 = 4'h11;
-                h4 = 4'h11;
-                h5 = 4'h11;
+                h0 = 5'h11;
+                h1 = 5'h11;
+                h2 = 5'h11;
+                h3 = 5'h11;
+                h4 = 5'h11;
+                h5 = 5'h11;
             end
             DONE: begin
                 if (key_valid) begin
@@ -99,12 +99,12 @@ module task4(input logic CLOCK_50, input logic [3:0] KEY,
 					h5 = key[23:20];
                 end
                 else begin
-                    h0 = 4'h10;
-                    h1 = 4'h10;
-                    h2 = 4'h10;
-                    h3 = 4'h10;
-                    h4 = 4'h10;
-                    h5 = 4'h10;
+                    h0 = 5'h10;
+                    h1 = 5'h10;
+                    h2 = 5'h10;
+                    h3 = 5'h10;
+                    h4 = 5'h10;
+                    h5 = 5'h10;
                 end
                 next_state = DONE;
             end
