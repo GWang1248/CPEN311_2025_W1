@@ -181,3 +181,4 @@ module crack1(input logic clk, input logic rst_n,
     end
 
 endmodule: crack1
+

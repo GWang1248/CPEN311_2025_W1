@@ -33,6 +33,10 @@ module arc4(input logic clk, input logic rst_n,
         .wrdata (init_wrdata),
         .wren   (init_wren));
 
+    logic ksa_en, ksa_rdy;
+    logic [7:0] ksa_addr, ksa_wrdata;
+    logic ksa_wren;
+
     ksa k ( /* connect ports */ 
         .clk    (clk),
         .rst_n  (rst_n),
@@ -44,9 +48,7 @@ module arc4(input logic clk, input logic rst_n,
         .wrdata (ksa_wrdata),
         .wren   (ksa_wren));
 
-    logic ksa_en, ksa_rdy;
-    logic [7:0] ksa_addr, ksa_wrdata;
-    logic ksa_wren;
+    
 
     logic prga_en, prga_rdy, s_wren_prga;
     logic [7:0] s_address_prga;
@@ -90,7 +92,8 @@ module arc4(input logic clk, input logic rst_n,
 
 		case (state)
             INIT_RDY: begin
-            	if (init_rdy) 
+            	rdy = 1'b1;
+					if (en) 
                 	next_state = INIT_EN;	
             end
 
@@ -142,10 +145,17 @@ module arc4(input logic clk, input logic rst_n,
                 if (prga_rdy)
                     next_state = DONE;
             end
-			DONE: rdy = 1;
+			DONE: begin
+				rdy = 1;
+				if (en)
+				next_state = INIT_EN;   // start a new run for a new key
+				else
+				next_state = DONE; 
+				end
 
 			default: next_state = INIT;
         endcase
 	end
 
 endmodule: arc4
+

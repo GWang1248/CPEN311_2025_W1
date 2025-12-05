@@ -1,53 +1,84 @@
-module init(input logic clk, input logic rst_n,
-            input logic en, output logic rdy,
-            output logic [7:0] addr, output logic [7:0] wrdata, output logic wren);
+module init(
+    input  logic       clk,
+    input  logic       rst_n,
+    input  logic       en,
+    output logic       rdy,
+    output logic [7:0] addr,
+    output logic [7:0] wrdata,
+    output logic       wren
+);
 
-// your code here
+    typedef enum logic [1:0] {
+        IDLE,
+        WRITE,
+        DONE
+    } state_t;
 
-	logic[7:0] i;
-	typedef enum logic[1:0]{
-	IDLE, WRITE, DONE} state_t; state_t state, next_state;
+    state_t state, next_state;
+    logic [7:0] i, i_next;
 
-	always_ff@(posedge clk or negedge rst_n) begin
-		if(!rst_n) begin
-			state <= IDLE;
-			i <= 8'd0;
-		end else begin
-			state <= next_state;
-			case (state)
-                IDLE: begin
-                if (en && rdy) begin
-                    	i <= 8'd0;         // start from 0 on new request
-                	end
+    // Sequential
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            state <= IDLE;
+            i     <= 8'd0;
+        end else begin
+            state <= next_state;
+            i     <= i_next;
+        end
+    end
+
+    // Combinational: next state and outputs
+    always_comb begin
+        // Defaults
+        next_state = state;
+        i_next     = i;
+
+        rdy    = 1'b0;
+        wren   = 1'b0;
+        addr   = i;
+        wrdata = i;
+
+        case (state)
+            //--------------------------------
+            IDLE: begin
+                rdy = 1'b1;            // ready while idle
+
+                if (en) begin
+                    // start a new run
+                    i_next     = 8'd0;
+                    rdy        = 1'b0; // now busy
+                    next_state = WRITE;
                 end
-                WRITE: begin
-                	if (i != 8'd255)
-                    	i <= i + 8'd1;     // increment until 255
+            end
+
+            //--------------------------------
+            WRITE: begin
+                rdy  = 1'b0;
+                wren = 1'b1;           // write S[i] = i
+
+                if (i == 8'hFF) begin
+                    // finished writing last entry
+                    next_state = DONE;
+                end else begin
+                    i_next = i + 8'd1;
                 end
-            endcase
-		end
-	end
+            end
 
-	always_comb begin
-		rdy = 1'b0;
-		wren = 1'b0;
-		next_state = IDLE;
-		addr = i;
-		wrdata = i;
-		case(state)
-			IDLE: begin
-				rdy = 1'b1;
-				if(en == 1'b1)
-					next_state = WRITE;
-			end
-			WRITE: begin
-				rdy = 1'b0;
-				wren = 1'b1;
-				if(i == 8'd255)
-					next_state = IDLE;
-			end
-			default: ;
-		endcase
-	end		 
+            //--------------------------------
+            DONE: begin
+                rdy = 1'b1;            // done
 
-endmodule: init
+                // Wait for en to drop before returning to IDLE
+                if (!en) begin
+                    next_state = IDLE;
+                end
+            end
+
+            default: begin
+                next_state = IDLE;
+            end
+        endcase
+    end
+
+endmodule : init
